@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ACL·SCAN — Anterior Cruciate Ligament AI Diagnostics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --white:#ffffff; --off:#f7f6f3; --bg:#f4f3ef;
+  --ink:#111010; --ink2:#2a2a2a; --mid:#888580;
+  --light:#c8c5be; --border:#e2e0da; --border2:#d0cdc6;
+  --violet:#8b6fcb; --violet2:#a384d8; --lilac:#c4aef0;
+  --rose:#d4a0b0; --red:#cc3344; --green:#2d7a52;
+  --font-d:'Onest',sans-serif; --font-s:'Lora',serif;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;font-size:16px;}
+body{background:var(--white);color:var(--ink);font-family:var(--font-d);font-weight:400;overflow-x:hidden;cursor:none;}
+
+/* ── CURSOR ── */
+.cursor{width:8px;height:8px;background:var(--ink);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .3s var(--ease),height .3s var(--ease),background .3s;}
+.cursor-ring{width:32px;height:32px;border:1px solid rgba(17,16,16,.3);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform .4s var(--ease),width .4s var(--ease),height .4s var(--ease);}
+
+/* ── HEADER ── */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:22px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s;
+}
+header.scrolled{border-color:var(--border);}
+.header-left{display:flex;align-items:center;gap:0;}
+.header-logo{font-weight:800;font-size:.95rem;letter-spacing:.04em;color:var(--ink);text-decoration:none;font-family:var(--font-d);}
+.header-divider{width:32px;height:1px;background:var(--ink);margin:0 14px;flex-shrink:0;}
+.header-menu-label{font-size:.78rem;font-weight:400;letter-spacing:.04em;color:var(--ink);cursor:pointer;font-family:var(--font-d);background:none;border:none;}
+.header-actions{display:flex;align-items:center;gap:14px;}
+.header-icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--border2);background:none;display:grid;place-items:center;cursor:pointer;transition:background .2s,border-color .2s;}
+.header-icon:hover{background:var(--off);}
+.header-icon svg{width:16px;height:16px;}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:grid;grid-template-columns:200px 1fr;position:relative;overflow:hidden;padding-top:80px;}
+.sidebar-nav{padding:80px 0 40px 40px;display:flex;flex-direction:column;justify-content:center;gap:6px;z-index:5;}
+.sidebar-nav a{font-size:.78rem;color:var(--light);text-decoration:none;display:flex;align-items:center;gap:10px;transition:color .25s;line-height:1.8;}
+.sidebar-nav a .dot{width:5px;height:5px;border-radius:50%;border:1px solid currentColor;flex-shrink:0;transition:background .25s;}
+.sidebar-nav a.active{color:var(--ink);}
+.sidebar-nav a.active .dot{background:var(--ink);border-color:var(--ink);}
+.sidebar-nav a:hover{color:var(--ink2);}
+.hero-main{padding:80px 48px 200px 24px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2;max-width:520px;}
+.hero-eyebrow{font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);margin-bottom:28px;}
+.hero-h1{font-weight:400;font-size:clamp(2.2rem,4.2vw,3.2rem);line-height:1.15;letter-spacing:-.01em;margin-bottom:24px;font-family:var(--font-d);color:var(--ink);}
+.hero-p{font-size:.875rem;color:var(--mid);max-width:320px;line-height:1.7;margin-bottom:40px;font-weight:400;}
+.btn-primary{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--ink);border-radius:100px;padding:11px 24px;font-size:.68rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);background:none;cursor:pointer;transition:background .25s,color .25s;font-family:var(--font-d);width:fit-content;}
+.btn-primary:hover{background:var(--ink);color:var(--white);}
+
+/* ── DNA VISUAL ── */
+.hero-visual{position:absolute;top:0;right:0;width:62%;height:100%;pointer-events:none;z-index:1;overflow:hidden;}
+#dna-hero-canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block;}
+/* Left-edge fade: text bleeds into visual */
+.hero-visual::after{content:'';position:absolute;top:0;left:0;width:30%;height:100%;background:linear-gradient(to right,rgba(255,255,255,1) 0%,rgba(255,255,255,0) 100%);z-index:2;pointer-events:none;}
+/* Bottom fade */
+.hero-visual::before{content:'';position:absolute;bottom:0;left:0;right:0;height:28%;background:linear-gradient(to top,rgba(255,255,255,1) 0%,rgba(255,255,255,0) 100%);z-index:2;pointer-events:none;}
+/* Top fade */
+.hero-visual-top-fade{position:absolute;top:0;left:0;right:0;height:12%;background:linear-gradient(to bottom,rgba(255,255,255,1) 0%,rgba(255,255,255,0) 100%);z-index:3;pointer-events:none;}
+/* Right-edge fade */
+.hero-visual-right-fade{position:absolute;top:0;right:0;width:10%;height:100%;background:linear-gradient(to left,rgba(255,255,255,0.7) 0%,rgba(255,255,255,0) 100%);z-index:3;pointer-events:none;}
+
+/* ── SCROLL MORE pill ── */
+.scroll-more{position:absolute;right:40px;bottom:140px;display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:500;letter-spacing:.06em;background:var(--ink);color:var(--white);padding:10px 18px;border-radius:100px;cursor:pointer;z-index:5;}
+.scroll-more svg{width:14px;height:14px;}
+
+/* ── BOTTOM CARD ── */
+.hero-bottom-card{position:absolute;bottom:0;left:200px;right:0;background:var(--off);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:28px 40px;display:grid;grid-template-columns:80px 1fr 1fr;gap:32px;align-items:center;z-index:5;}
+.card-num{font-size:2.5rem;font-weight:800;line-height:1;letter-spacing:-.04em;}
+.card-title-block{border-left:1px solid var(--border2);padding-left:24px;}
+.card-date{font-size:.7rem;color:var(--mid);margin-bottom:6px;letter-spacing:.04em;}
+.card-title{font-size:.95rem;font-weight:600;line-height:1.3;}
+.card-body{font-size:.75rem;color:var(--mid);line-height:1.65;}
+
+/* ── 3D SPINE toggle ── */
+.spine-toggle{position:absolute;right:40px;top:110px;z-index:6;background:var(--ink);color:var(--white);border:none;border-radius:100px;padding:10px 18px;font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--font-d);transition:background .2s,transform .2s;}
+.spine-toggle:hover{background:var(--violet);transform:translateY(-2px);}
+.spine-info{position:absolute;right:40px;top:158px;z-index:6;font-size:.65rem;color:var(--mid);letter-spacing:.04em;background:rgba(255,255,255,.88);padding:8px 12px;border-radius:8px;backdrop-filter:blur(12px);border:1px solid var(--border);display:none;}
+.spine-info.visible{display:block;}
+#spine-canvas{position:absolute;right:2%;top:-4%;width:min(41vw,520px);max-width:none;height:520px;border-radius:20px;opacity:0.95;filter:drop-shadow(0 12px 24px rgba(191,109,184,.16));z-index:2;display:none;}
+#spine-canvas.active{display:block;animation:spineAppear .8s ease-out forwards;}
+@keyframes spineAppear{from{opacity:0;transform:scale(0.95);}to{opacity:0.95;transform:scale(1);}}
+
+/* ── MARQUEE ── */
+.marquee-wrap{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--white);padding:20px 0;}
+.marquee-track{display:flex;animation:marquee 22s linear infinite;width:max-content;}
+.marquee-item{display:flex;align-items:center;gap:28px;padding-right:28px;font-size:1.05rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--ink2);}
+.marquee-item .plus-icon{width:22px;height:22px;border-radius:50%;border:1px solid var(--border2);display:inline-grid;place-items:center;flex-shrink:0;}
+.marquee-item .plus-icon::before{content:'+';font-size:.75rem;}
+@keyframes marquee{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+
+/* ── CONCENTRIC CIRCLES ── */
+.concentric-section{position:relative;min-height:100vh;background:var(--white);overflow:hidden;display:grid;grid-template-columns:1fr 1fr;align-items:center;}
+.concentric-sticky-wrap{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.circles-stage{position:relative;width:540px;height:540px;will-change:transform;}
+.c-ring{position:absolute;border-radius:50%;border:1px solid rgba(180,175,168,0.5);background:rgba(247,246,243,0.2);top:50%;left:50%;transform:translate(-50%,-50%) scale(1);will-change:transform,opacity;transition:none;}
+.c-ring:nth-child(1){width:80px;height:80px;background:rgba(240,238,234,0.9);}
+.c-ring:nth-child(2){width:180px;height:180px;background:rgba(244,243,239,0.7);}
+.c-ring:nth-child(3){width:300px;height:300px;background:rgba(247,246,243,0.4);}
+.c-ring:nth-child(4){width:420px;height:420px;background:rgba(250,249,246,0.2);}
+.c-ring:nth-child(5){width:540px;height:540px;background:transparent;}
+.c-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:var(--violet);box-shadow:0 0 24px rgba(139,111,203,.6);z-index:10;}
+.c-label{position:absolute;display:flex;align-items:center;gap:7px;font-size:.7rem;color:var(--mid);white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .5s var(--ease),transform .5s var(--ease);}
+.c-label.visible{opacity:1;transform:translateY(0);}
+.c-label .cldot{width:5px;height:5px;border-radius:50%;background:var(--violet);flex-shrink:0;}
+.concentric-content{padding:80px 60px 80px 32px;position:relative;z-index:10;}
+.conc-label{font-size:.7rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--mid);margin-bottom:24px;}
+.conc-h2{font-weight:800;font-size:clamp(2rem,3.2vw,2.8rem);letter-spacing:-.025em;line-height:1.1;margin-bottom:40px;}
+.conc-h2 em{font-style:italic;font-family:var(--font-s);font-weight:400;color:var(--light);}
+.feature-list{display:flex;flex-direction:column;gap:0;}
+.feature-item{padding:20px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:28px 1fr;gap:16px;align-items:start;opacity:.35;transition:opacity .4s var(--ease);}
+.feature-item.active-feat{opacity:1;}
+.feat-num{font-size:.7rem;color:var(--light);font-weight:500;padding-top:2px;}
+.feat-title{font-weight:700;font-size:.9rem;margin-bottom:5px;}
+.feat-desc{font-size:.75rem;color:var(--mid);line-height:1.55;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);}
+.stat-item{padding:28px 20px 24px;border-bottom:1px solid var(--border);position:relative;}
+.stat-item:nth-child(odd){border-right:1px solid var(--border);}
+.stat-num{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:6px;}
+.stat-desc{font-size:.72rem;color:var(--mid);line-height:1.4;}
+
+/* ── UPLOAD ── */
+.upload-section{padding:100px 40px;background:var(--off);border-top:1px solid var(--border);}
+.section-label{font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);margin-bottom:48px;display:flex;align-items:center;gap:16px;}
+.section-label::after{content:'';flex:1;max-width:80px;height:1px;background:var(--border2);}
+.upload-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:48px;flex-wrap:wrap;gap:20px;}
+.upload-h2{font-weight:800;font-size:clamp(2rem,3.5vw,3rem);letter-spacing:-.025em;line-height:1.08;}
+.upload-sub{font-size:.82rem;color:var(--mid);max-width:280px;line-height:1.55;}
+.upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border:1px solid var(--border2);border-radius:16px;overflow:hidden;margin-bottom:24px;background:var(--border2);}
+.upload-card{background:var(--white);padding:36px 28px;cursor:pointer;transition:background .2s;position:relative;}
+.upload-card:first-child{border-radius:16px 0 0 16px;}
+.upload-card:last-child{border-radius:0 16px 16px 0;}
+.upload-card:hover{background:var(--off);}
+.upload-card.loaded{background:#f0faf5;}
+.upload-card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2;}
+.plane-icon-wrap{width:56px;height:56px;border-radius:14px;border:1px solid var(--border2);display:grid;place-items:center;margin-bottom:20px;transition:border-color .2s;}
+.upload-card.loaded .plane-icon-wrap{border-color:var(--green);}
+.plane-icon-wrap svg{width:28px;height:28px;}
+.plane-name{font-weight:700;font-size:1.05rem;letter-spacing:-.01em;margin-bottom:4px;}
+.plane-desc{font-size:.75rem;color:var(--mid);margin-bottom:20px;line-height:1.45;}
+.upload-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;font-size:.68rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border2);color:var(--mid);transition:all .2s;}
+.upload-pill.loaded{border-color:var(--green);color:var(--green);background:rgba(45,122,82,.06);}
+.upload-pill .pill-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.upload-hint{text-align:center;font-size:.72rem;color:var(--light);margin-bottom:32px;}
+.upload-hint b{color:var(--mid);font-weight:500;}
+.btn-analyze-wrap{display:flex;justify-content:center;}
+.btn-analyze{display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--white);border:none;border-radius:100px;padding:18px 48px;font-family:var(--font-d);font-size:.82rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .25s,transform .25s var(--ease),box-shadow .25s;}
+.btn-analyze:hover:not(:disabled){background:var(--ink2);transform:translateY(-2px);box-shadow:0 12px 32px rgba(17,16,16,.18);}
+.btn-analyze:disabled{background:var(--light);cursor:not-allowed;}
+.btn-analyze .btn-arrow{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);display:grid;place-items:center;flex-shrink:0;}
+.btn-analyze .btn-arrow svg{width:14px;height:14px;}
+
+/* ── LOADING ── */
+.loading-overlay{position:fixed;inset:0;z-index:500;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:32px;}
+.loading-overlay.visible{display:flex;}
+.loading-dna{position:relative;width:80px;height:80px;}
+.loading-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--border);}
+.loading-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:1.5px solid transparent;border-top-color:var(--violet);animation:spin 1.2s linear infinite;}
+.loading-ring:nth-child(2){inset:14px;}
+.loading-ring:nth-child(2)::before{animation-duration:.9s;animation-direction:reverse;border-top-color:var(--lilac);}
+.loading-ring:nth-child(3){inset:28px;}
+.loading-ring:nth-child(3)::before{animation-duration:1.6s;border-top-color:var(--rose);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-label{font-size:.78rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);}
+.loading-step{font-size:.72rem;color:var(--light);letter-spacing:.06em;text-transform:uppercase;text-align:center;line-height:2;max-width:320px;}
+
+/* ── RESULTS ── */
+#results{display:none;background:var(--white);border-top:1px solid var(--border);}
+#results.visible{display:block;}
+.result-header-section{padding:80px 40px 60px;}
+.result-banner{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center;padding:48px;border-radius:20px;margin-bottom:48px;position:relative;overflow:hidden;}
+.result-banner.tear{background:#fff5f6;border:1px solid rgba(204,51,68,.2);}
+.result-banner.normal{background:#f0faf5;border:1px solid rgba(45,122,82,.2);}
+.result-status-row{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+.result-status-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:100px;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
+.result-status-badge.tear{background:rgba(204,51,68,.1);color:var(--red);border:1px solid rgba(204,51,68,.25);}
+.result-status-badge.normal{background:rgba(45,122,82,.1);color:var(--green);border:1px solid rgba(45,122,82,.25);}
+.result-status-badge .badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.result-label-big{font-weight:800;font-size:clamp(2rem,4vw,3.2rem);letter-spacing:-.03em;line-height:1.05;margin-bottom:10px;}
+.result-label-big.tear{color:var(--red);}
+.result-label-big.normal{color:var(--green);}
+.result-sub-text{font-size:.82rem;color:var(--mid);line-height:1.5;}
+.result-prob-big{text-align:right;}
+.prob-big-num{font-weight:800;font-size:clamp(3rem,6vw,5rem);letter-spacing:-.04em;line-height:1;}
+.prob-big-num.tear{color:var(--red);}
+.prob-big-num.normal{color:var(--green);}
+.prob-big-label{font-size:.68rem;color:var(--mid);text-transform:uppercase;letter-spacing:.1em;}
+.prob-bars-section{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:48px;}
+.prob-bar-card{background:var(--off);border:1px solid var(--border);border-radius:14px;padding:24px;}
+.pbc-label{font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--mid);margin-bottom:16px;}
+.pbc-track{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:10px;}
+.pbc-fill{height:100%;border-radius:99px;width:0;transition:width 1.4s var(--ease);}
+.pbc-fill.tear{background:linear-gradient(90deg,#e0667a,var(--red));}
+.pbc-fill.normal{background:linear-gradient(90deg,#5aab7e,var(--green));}
+.pbc-vals{display:flex;justify-content:space-between;font-size:.7rem;}
+.pbc-pct{font-weight:700;}
+.pbc-pct.tear{color:var(--red);}
+.pbc-pct.normal{color:var(--green);}
+.pbc-end{color:var(--light);}
+.gradcam-section{padding:0 40px 80px;}
+.section-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-big-label{font-weight:800;font-size:1.5rem;letter-spacing:-.02em;}
+.section-desc{font-size:.78rem;color:var(--mid);line-height:1.6;margin-bottom:28px;max-width:520px;}
+.plane-tabs{display:flex;gap:0;margin-bottom:28px;border:1px solid var(--border2);border-radius:10px;overflow:hidden;width:fit-content;}
+.plane-tab{padding:10px 24px;font-size:.78rem;font-weight:500;letter-spacing:.04em;background:var(--white);border:none;cursor:pointer;color:var(--mid);transition:all .2s;font-family:var(--font-d);}
+.plane-tab+.plane-tab{border-left:1px solid var(--border2);}
+.plane-tab:hover{background:var(--off);color:var(--ink);}
+.plane-tab.active{background:var(--ink);color:var(--white);}
+.slice-viewer{display:none;}
+.slice-viewer.active{display:block;}
+.slice-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
+.slice-thumb{border-radius:8px;overflow:hidden;border:1.5px solid var(--border);cursor:pointer;transition:border-color .2s,transform .2s;position:relative;aspect-ratio:1;}
+.slice-thumb:hover{border-color:var(--mid);transform:scale(1.03);}
+.slice-thumb.active{border-color:var(--ink);}
+.slice-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.slice-thumb .thumb-idx{position:absolute;top:5px;left:5px;font-size:.55rem;font-weight:600;background:rgba(255,255,255,.85);color:var(--ink);padding:2px 5px;border-radius:4px;}
+.big-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--off);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.preview-panel{text-align:center;}
+.preview-panel-label{font-size:.65rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin-bottom:10px;}
+.preview-panel-img{width:100%;border-radius:10px;border:1px solid var(--border);display:block;}
+.attn-section{padding:0 40px 80px;}
+.attn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.attn-card{background:var(--off);border:1px solid var(--border);border-radius:14px;padding:24px;}
+.attn-card-title{font-weight:700;font-size:.82rem;margin-bottom:16px;text-transform:capitalize;}
+.attn-bars{display:flex;flex-direction:column;gap:5px;}
+.attn-row{display:flex;align-items:center;gap:8px;}
+.attn-idx{font-size:.58rem;color:var(--light);width:16px;text-align:right;flex-shrink:0;}
+.attn-track{flex:1;height:4px;background:var(--border);border-radius:99px;overflow:hidden;}
+.attn-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--lilac),var(--violet));}
+.disclaimer-section{padding:0 40px 80px;}
+.disclaimer-box{background:#fffbf0;border:1px solid rgba(200,160,0,.25);border-radius:14px;padding:24px 28px;display:flex;gap:16px;align-items:flex-start;}
+.disc-icon{font-size:1rem;margin-top:1px;flex-shrink:0;}
+.disc-text{font-size:.78rem;color:#7a6200;line-height:1.6;}
+.disc-text strong{color:#5a4800;}
+footer{border-top:1px solid var(--border);padding:28px 40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.footer-logo{font-weight:800;font-size:.95rem;letter-spacing:.02em;}
+.footer-text{font-size:.7rem;color:var(--mid);letter-spacing:.04em;}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease),transform .8s var(--ease);}
+.reveal.in-view{opacity:1;transform:translateY(0);}
+.reveal-1{transition-delay:.1s;}
+.reveal-2{transition-delay:.2s;}
+.reveal-3{transition-delay:.3s;}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;}
+  .sidebar-nav{display:none;}
+  .hero-main{padding:100px 24px 320px;}
+  .hero-visual{left:0;right:0;top:auto;bottom:86px;width:100%;height:52vh;}
+  .hero-bottom-card{left:0;grid-template-columns:60px 1fr;}
+  .hero-bottom-card .card-body{display:none;}
+  .concentric-section{grid-template-columns:1fr;}
+  .concentric-sticky-wrap{height:50vh;min-height:300px;}
+  .circles-stage{width:280px;height:280px;}
+  .concentric-content{padding:40px 24px;}
+  .upload-grid{grid-template-columns:1fr;}
+  .prob-bars-section,.attn-grid,.big-preview-grid{grid-template-columns:1fr;}
+  .result-banner{grid-template-columns:1fr;}
+  .result-prob-big{text-align:left;}
+  header{padding:16px 24px;}
+  .upload-section,.result-header-section,.gradcam-section,.attn-section,.disclaimer-section{padding-left:24px;padding-right:24px;}
+  footer{padding:24px;}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<header id="header">
+  <div class="header-left">
+    <a class="header-logo" href="#">ACL·SCAN</a>
+    <div class="header-divider"></div>
+    <button class="header-menu-label">Menu</button>
+  </div>
+  <div class="header-actions">
+    <button class="header-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <button class="header-icon" id="sound-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="hero" id="hero">
+  <nav class="sidebar-nav">
+    <a href="#hero" class="active"><span class="dot"></span>Intro</a>
+    <a href="#mission"><span class="dot"></span>Expertise</a>
+    <a href="#upload-section"><span class="dot"></span>Technology</a>
+    <a href="#results"><span class="dot"></span>Results</a>
+  </nav>
+
+  <div class="hero-main">
+    <div class="hero-eyebrow">AI-Based Musculoskeletal Tissue Injury Detection using MRI</div>
+    <h1 class="hero-h1">Detailed diagnostic<br>of your knee</h1>
+    <p class="hero-p">AI-powered ACL tear detection from MRI volumes. Upload your MRNet-format scans and receive an instant diagnosis with explainability maps.</p>
+    <button class="btn-primary" onclick="scrollToUpload()">UPLOAD SCAN</button>
+  </div>
+
+  <div class="hero-visual">
+    <canvas id="dna-hero-canvas"></canvas>
+    <div class="hero-visual-top-fade"></div>
+    <div class="hero-visual-right-fade"></div>
+  </div>
+
+  <button class="spine-toggle" onclick="toggleSpineViewer()">3D SPINE</button>
+  <div class="spine-info" id="spine-info">Drag to rotate · Scroll to zoom</div>
+  <canvas id="spine-canvas"></canvas>
+
+  <div class="scroll-more" onclick="document.getElementById('marquee-sec').scrollIntoView({behavior:'smooth'})">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    Scroll for more
+  </div>
+
+  <div class="hero-bottom-card">
+    <div class="card-num">01</div>
+    <div class="card-title-block">
+      <div class="card-date">2024 · AI DIAGNOSTICS</div>
+      <div class="card-title">ACL Tear Detection<br>with Deep Learning</div>
+    </div>
+    <div class="card-body">ACL·SCAN uses the Stanford MRNet architecture with multi-plane attention pooling and Grad-CAM++ explainability. Trained on 1,370 MRI cases. AUC 0.954.</div>
+  </div>
+</section>
+
+<div class="marquee-wrap" id="marquee-sec">
+  <div class="marquee-track" id="marquee-track"></div>
+</div>
+
+<section class="concentric-section" id="mission">
+  <div class="concentric-sticky-wrap" id="circles-sticky">
+    <div class="circles-stage" id="circles-stage">
+      <div class="c-ring" id="cr1"></div>
+      <div class="c-ring" id="cr2"></div>
+      <div class="c-ring" id="cr3"></div>
+      <div class="c-ring" id="cr4"></div>
+      <div class="c-ring" id="cr5"></div>
+      <div class="c-center"></div>
+      <div class="c-label" id="cl1" style="top:18%;left:55%;"><span class="cldot"></span>Grad-CAM++ XAI</div>
+      <div class="c-label" id="cl2" style="top:35%;left:68%;"><span class="cldot"></span>Attention Pooling</div>
+      <div class="c-label" id="cl3" style="bottom:28%;left:12%;"><span class="cldot"></span>Multi-Plane Fusion</div>
+      <div class="c-label" id="cl4" style="bottom:15%;left:55%;"><span class="cldot"></span>Quality Assurance</div>
+      <div class="c-label" id="cl5" style="top:50%;left:2%;"><span class="cldot"></span>Collaboration &amp; Support</div>
+    </div>
+  </div>
+  <div class="concentric-content">
+    <div class="conc-label">ACL·SCAN's Precision Diagnostics</div>
+    <h2 class="conc-h2">Our mission is to detect ACL tears with <em>the most precise diagnostic insights.</em></h2>
+    <div class="feature-list">
+      <div class="feature-item active-feat" data-ring="1">
+        <span class="feat-num">01</span>
+        <div class="feat-body">
+          <div class="feat-title">Grad-CAM++ Explainability</div>
+          <div class="feat-desc">Gradient-weighted Class Activation Maps highlight exactly which joint regions drove the prediction — every pixel earns its attention score.</div>
+        </div>
+      </div>
+      <div class="feature-item" data-ring="2">
+        <span class="feat-num">02</span>
+        <div class="feat-body">
+          <div class="feat-title">Attention Pooling</div>
+          <div class="feat-desc">Learned per-slice attention weights let the model emphasise the most informative MRI slices and down-weight noisy frames automatically.</div>
+        </div>
+      </div>
+      <div class="feature-item" data-ring="3">
+        <span class="feat-num">03</span>
+        <div class="feat-body">
+          <div class="feat-title">Multi-Plane Fusion</div>
+          <div class="feat-desc">Independent ResNet18 encoders process axial, coronal and sagittal volumes; their representations are fused for a holistic view of the joint.</div>
+        </div>
+      </div>
+      <div class="feature-item" data-ring="4">
+        <span class="feat-num">04</span>
+        <div class="feat-body">
+          <div class="feat-title">Quality Assurance</div>
+          <div class="feat-desc">CLAHE preprocessing normalises intensity across scanners and field strengths, keeping prediction accuracy robust to imaging hardware variation.</div>
+        </div>
+      </div>
+      <div class="feature-item" data-ring="5">
+        <span class="feat-num">05</span>
+        <div class="feat-body">
+          <div class="feat-title">Research Collaboration</div>
+          <div class="feat-desc">Built on the Stanford MRNet dataset with AUC 0.954 on the held-out validation set, matching radiologist-level performance on ACL pathology.</div>
+        </div>
+      </div>
+    </div>
+    <div class="stats-grid" style="margin-top:40px;">
+      <div class="stat-item"><div class="stat-num">0.954</div><div class="stat-desc">Validation AUC Score</div></div>
+      <div class="stat-item"><div class="stat-num">1,370</div><div class="stat-desc">Training MRI Cases</div></div>
+      <div class="stat-item"><div class="stat-num">3×</div><div class="stat-desc">MRI Planes Analyzed</div></div>
+      <div class="stat-item"><div class="stat-num">ResNet18</div><div class="stat-desc">Backbone per Plane</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="upload-section" id="upload-section">
+  <div class="section-label">02 — Upload MRI Volumes</div>
+  <div class="upload-header reveal">
+    <h2 class="upload-h2">Upload your<br>MRI volumes</h2>
+    <p class="upload-sub">Upload three <b>.npy</b> files from the MRNet dataset format. Shape: (slices, H, W)</p>
+  </div>
+  <div class="upload-grid reveal reveal-1">
+    <div class="upload-card" id="card-axial" onclick="document.getElementById('file-axial').click()">
+      <input type="file" id="file-axial" accept=".npy" onchange="handleFile('axial',this)" onclick="event.stopPropagation()">
+      <div class="plane-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="#8b6fcb" stroke-width="1.5"><ellipse cx="12" cy="12" rx="10" ry="4"/><path d="M2 12v3c0 2.2 4.5 4 10 4s10-1.8 10-4v-3"/></svg></div>
+      <div class="plane-name">Axial</div>
+      <div class="plane-desc">Top-down cross-section view of the knee joint</div>
+      <div class="upload-pill" id="status-axial"><span class="pill-dot"></span>Awaiting file</div>
+    </div>
+    <div class="upload-card" id="card-coronal" onclick="document.getElementById('file-coronal').click()">
+      <input type="file" id="file-coronal" accept=".npy" onchange="handleFile('coronal',this)" onclick="event.stopPropagation()">
+      <div class="plane-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="#8b6fcb" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg></div>
+      <div class="plane-name">Coronal</div>
+      <div class="plane-desc">Front-to-back cross-section view of the knee</div>
+      <div class="upload-pill" id="status-coronal"><span class="pill-dot"></span>Awaiting file</div>
+    </div>
+    <div class="upload-card" id="card-sagittal" onclick="document.getElementById('file-sagittal').click()">
+      <input type="file" id="file-sagittal" accept=".npy" onchange="handleFile('sagittal',this)" onclick="event.stopPropagation()">
+      <div class="plane-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="#8b6fcb" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg></div>
+      <div class="plane-name">Sagittal</div>
+      <div class="plane-desc">Side cross-section view of the knee joint</div>
+      <div class="upload-pill" id="status-sagittal"><span class="pill-dot"></span>Awaiting file</div>
+    </div>
+  </div>
+  <p class="upload-hint reveal">Upload <b>.npy</b> files from MRNet dataset · Shape: <b>(slices, H, W)</b></p>
+  <div class="btn-analyze-wrap reveal reveal-1">
+    <button class="btn-analyze" id="btn-analyze" disabled onclick="runAnalysis()">
+      ANALYZE MRI SCAN
+      <span class="btn-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+    </button>
+  </div>
+</section>
+
+<section id="results">
+  <div class="result-header-section">
+    <div class="section-label">03 — Diagnostic Result</div>
+    <div class="result-banner" id="result-banner">
+      <div>
+        <div class="result-status-row">
+          <div class="result-status-badge" id="result-badge"><span class="badge-dot"></span><span id="badge-text">—</span></div>
+        </div>
+        <div class="result-label-big" id="result-label">—</div>
+        <div class="result-sub-text" id="result-sub">—</div>
+      </div>
+      <div class="result-prob-big">
+        <div class="prob-big-num" id="result-prob-num">—</div>
+        <div class="prob-big-label">ACL Tear Probability</div>
+      </div>
+    </div>
+    <div class="prob-bars-section">
+      <div class="prob-bar-card">
+        <div class="pbc-label">ACL Tear Probability</div>
+        <div class="pbc-track"><div class="pbc-fill tear" id="bar-tear"></div></div>
+        <div class="pbc-vals"><span class="pbc-end">0%</span><span class="pbc-pct tear" id="pct-tear">—</span><span class="pbc-end">100%</span></div>
+      </div>
+      <div class="prob-bar-card">
+        <div class="pbc-label">Normal Probability</div>
+        <div class="pbc-track"><div class="pbc-fill normal" id="bar-normal"></div></div>
+        <div class="pbc-vals"><span class="pbc-end">0%</span><span class="pbc-pct normal" id="pct-normal">—</span><span class="pbc-end">100%</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="gradcam-section">
+    <div class="section-label">04 — Grad-CAM++ Explainability</div>
+    <div class="section-title-row"><div class="section-big-label">Activation Maps</div></div>
+    <p class="section-desc">Gradient-weighted Class Activation Maps show which regions the model focused on. Hot (red/yellow) zones indicate high attention; cool (blue) zones are less decisive.</p>
+    <div class="plane-tabs">
+      <button class="plane-tab active" onclick="switchPlane('axial',this)">Axial</button>
+      <button class="plane-tab" onclick="switchPlane('coronal',this)">Coronal</button>
+      <button class="plane-tab" onclick="switchPlane('sagittal',this)">Sagittal</button>
+    </div>
+    <div class="slice-viewer active" id="viewer-axial"></div>
+    <div class="slice-viewer" id="viewer-coronal"></div>
+    <div class="slice-viewer" id="viewer-sagittal"></div>
+  </div>
+  <div class="attn-section">
+    <div class="section-label">05 — Slice Attention Weights</div>
+    <p class="section-desc">Learned attention scores across slices — taller bars mean the model weighted that slice more heavily.</p>
+    <div class="attn-grid" id="attn-grid"></div>
+  </div>
+  <div class="disclaimer-section">
+    <div class="disclaimer-box">
+      <div class="disc-icon">⚠️</div>
+      <div class="disc-text"><strong>Research Use Only.</strong> This tool is a student DIP project built on the Stanford MRNet dataset. It is <strong>not a medical device</strong> and must not be used for clinical diagnosis. All results require validation by a qualified radiologist or orthopaedic specialist.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">ACL·SCAN</div>
+  <div class="footer-text">DIP Course Project · MRNet Dataset (Stanford)</div>
+  <div class="footer-text">ResNet18 + Multi-Plane Attention + Grad-CAM++</div>
+</footer>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-dna">
+    <div class="loading-ring"></div>
+    <div class="loading-ring"></div>
+    <div class="loading-ring"></div>
+  </div>
+  <div class="loading-label" id="loading-label">PROCESSING</div>
+  <div class="loading-step" id="loading-step">Initializing inference engine...</div>
+</div>
+
+<script>
+const API_BASE = window.API_BASE || (
+  window.location.protocol === 'file:' ? 'http://localhost:5000' : window.location.origin
+);
+
+/* ══════════════════════════════════════════════════════════
+   CURSOR
+══════════════════════════════════════════════════════════ */
+const cursor=document.getElementById('cursor'),cursorRing=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function animC(){rx+=(mx-rx)*.14;ry+=(my-ry)*.14;cursor.style.cssText+=`left:${mx}px;top:${my}px;`;cursorRing.style.cssText+=`left:${rx}px;top:${ry}px;`;requestAnimationFrame(animC);})();
+document.querySelectorAll('a,button,.upload-card,.slice-thumb,.plane-tab,.feature-item').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cursor.style.width='14px';cursor.style.height='14px';cursorRing.style.width='48px';cursorRing.style.height='48px';});
+  el.addEventListener('mouseleave',()=>{cursor.style.width='8px';cursor.style.height='8px';cursorRing.style.width='32px';cursorRing.style.height='32px';});
+});
+
+/* ══════════════════════════════════════════════════════════
+   HEADER SCROLL
+══════════════════════════════════════════════════════════ */
+window.addEventListener('scroll',()=>{
+  document.getElementById('header').classList.toggle('scrolled',window.scrollY>40);
+  updateSidebarNav();
+  handleConcentricScroll();
+});
+function updateSidebarNav(){
+  const ids=['hero','mission','upload-section','results'];let active='hero';
+  ids.forEach(id=>{const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<window.innerHeight*.5)active=id;});
+  document.querySelectorAll('.sidebar-nav a').forEach(a=>{a.classList.toggle('active',a.getAttribute('href').replace('#','')==active);});
+}
+
+/* ══════════════════════════════════════════════════════════
+   MARQUEE
+══════════════════════════════════════════════════════════ */
+const ITEMS=['KNEE PRECISION','DIAGNOSTIC INSIGHT','MRI ANALYSIS','ACL DETECTION','NEURAL NETWORK','GRAD-CAM++ XAI','RESNET18','ATTENTION POOLING','MRNET DATASET'];
+const track=document.getElementById('marquee-track');
+[...ITEMS,...ITEMS].forEach(t=>{const d=document.createElement('div');d.className='marquee-item';d.innerHTML=`${t}<span class="plus-icon"></span>`;track.appendChild(d);});
+
+/* ══════════════════════════════════════════════════════════
+   SCROLL REVEAL
+══════════════════════════════════════════════════════════ */
+const ro=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in-view');});},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+
+/* ══════════════════════════════════════════════════════════════════════
+   ████  BEAUTIFUL ORGANIC DNA HELIX  ████
+   7-layer watercolour particle system — MYDNA reference quality
+══════════════════════════════════════════════════════════════════════ */
+(function initDNA(){
+  const canvas = document.getElementById('dna-hero-canvas');
+  if (!canvas || !window.THREE) return;
+
+  const parent = canvas.parentElement;
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+  renderer.setClearColor(0x000000, 0);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 1000);
+  camera.position.set(0, 0, 7.8);
+
+  function resize() {
+    const w = parent.clientWidth || 800, h = parent.clientHeight || 900;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  window.addEventListener('resize', () => setTimeout(resize, 100));
+
+  /* ── Seeded RNG ── */
+  function seededRng(seed) {
+    let s = seed;
+    return () => {
+      s = (s * 1664525 + 1013904223) & 0xffffffff;
+      return (s >>> 0) / 4294967296;
+    };
+  }
+
+  /* ── Texture factories ── */
+  function mkGauss(size) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const cx = c.getContext('2d');
+    const g = cx.createRadialGradient(size/2,size/2,0, size/2,size/2,size/2);
+    g.addColorStop(0,   'rgba(255,255,255,1)');
+    g.addColorStop(0.3, 'rgba(255,255,255,0.88)');
+    g.addColorStop(0.65,'rgba(255,255,255,0.30)');
+    g.addColorStop(0.88,'rgba(255,255,255,0.06)');
+    g.addColorStop(1,   'rgba(255,255,255,0)');
+    cx.fillStyle = g; cx.fillRect(0,0,size,size);
+    return new THREE.CanvasTexture(c);
+  }
+
+  function mkBlob(size, seed) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const cx = c.getContext('2d');
+    const rng = seededRng(seed);
+    const n = 18 + Math.round(rng()*6);
+    const r0 = size * 0.35;
+    cx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a    = (i/n)*Math.PI*2;
+      const bump = 1 + (rng()-0.5)*0.28 + Math.sin(a*(3+rng()*3))*0.08;
+      const rx   = r0 * bump * (0.88+rng()*0.12);
+      const ry   = r0 * bump * (0.72+rng()*0.12);
+      const x = size/2 + Math.cos(a)*rx, y = size/2 + Math.sin(a)*ry;
+      i===0 ? cx.moveTo(x,y) : cx.lineTo(x,y);
+    }
+    cx.closePath();
+    const g = cx.createRadialGradient(size/2,size/2,0, size/2+r0*0.15,size/2-r0*0.1,r0*1.05);
+    g.addColorStop(0,   'rgba(255,255,255,1)');
+    g.addColorStop(0.35,'rgba(255,255,255,0.90)');
+    g.addColorStop(0.68,'rgba(255,255,255,0.45)');
+    g.addColorStop(0.88,'rgba(255,255,255,0.12)');
+    g.addColorStop(1,   'rgba(255,255,255,0)');
+    cx.fillStyle = g; cx.fill();
+    return new THREE.CanvasTexture(c);
+  }
+
+  function mkSplat(size, seed) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const cx = c.getContext('2d');
+    const rng = seededRng(seed);
+    const hw = size/2, R = size*0.29;
+    const pts = 22;
+    cx.beginPath();
+    for (let i = 0; i <= pts; i++) {
+      const a    = (i/pts)*Math.PI*2;
+      const bump = 0.55+rng()*0.45 + Math.sin(a*(2+rng()*4))*0.10;
+      const x = hw + Math.cos(a)*R*bump*(0.9+rng()*0.2);
+      const y = hw + Math.sin(a)*R*bump*(0.75+rng()*0.18);
+      i===0 ? cx.moveTo(x,y) : cx.lineTo(x,y);
+    }
+    cx.closePath();
+    const g = cx.createRadialGradient(hw+R*0.1,hw-R*0.1,0, hw,hw,R*1.1);
+    g.addColorStop(0,   'rgba(255,255,255,0.98)');
+    g.addColorStop(0.40,'rgba(255,255,255,0.80)');
+    g.addColorStop(0.72,'rgba(255,255,255,0.38)');
+    g.addColorStop(0.92,'rgba(255,255,255,0.09)');
+    g.addColorStop(1,   'rgba(255,255,255,0)');
+    cx.fillStyle = g; cx.fill();
+    for (let i = 0; i < 7+Math.round(rng()*6); i++) {
+      const da=rng()*Math.PI*2, dr=R*(0.65+rng()*0.70), sr=size*(0.018+rng()*0.055);
+      cx.beginPath(); cx.arc(hw+Math.cos(da)*dr, hw+Math.sin(da)*dr, sr, 0, Math.PI*2);
+      cx.fillStyle = `rgba(255,255,255,${0.25+rng()*0.55})`; cx.fill();
+    }
+    for (let i = 0; i < 4+Math.round(rng()*4); i++) {
+      const sa=rng()*Math.PI*2;
+      const sx=hw+Math.cos(sa)*R*0.85, sy=hw+Math.sin(sa)*R*0.85;
+      const ex=hw+Math.cos(sa)*R*(1.15+rng()*0.4), ey=hw+Math.sin(sa)*R*(1.15+rng()*0.4);
+      const sg=cx.createLinearGradient(sx,sy,ex,ey);
+      sg.addColorStop(0,`rgba(255,255,255,${0.35+rng()*0.30})`);
+      sg.addColorStop(1,'rgba(255,255,255,0)');
+      cx.beginPath(); cx.moveTo(sx,sy); cx.lineTo(ex,ey);
+      cx.strokeStyle=sg; cx.lineWidth=1.5+rng()*3; cx.stroke();
+    }
+    return new THREE.CanvasTexture(c);
+  }
+
+  /* Bake all textures */
+  const T = {
+    gauss : mkGauss(256),
+    blob0 : mkBlob(128, 1),
+    blob1 : mkBlob(128, 42),
+    blob2 : mkBlob(128, 99),
+    splat : [7,19,33,58,71,89].map(s => mkSplat(256, s))
+  };
+
+  /* ── Colour palette ── */
+  const P = {
+    indigoDeep : new THREE.Color(0x3a0f78),
+    indigo     : new THREE.Color(0x5b1fa0),
+    violet     : new THREE.Color(0x8b5fcf),
+    orchid     : new THREE.Color(0xaa55cc),
+    magentaD   : new THREE.Color(0xb03080),
+    magenta    : new THREE.Color(0xcc3d90),
+    rose       : new THREE.Color(0xd4558a),
+    salmon     : new THREE.Color(0xe07898),
+    periwinkle : new THREE.Color(0x9db4e8),
+    sky        : new THREE.Color(0x88c4e0),
+    ice        : new THREE.Color(0xb8e0f4),
+  };
+
+  function chromaAt(t) {
+    const A = new THREE.Color(), B = new THREE.Color();
+    if (t < 0.18) {
+      const u=t/0.18; A.lerpColors(P.indigoDeep,P.indigo,u); B.lerpColors(P.indigo,P.violet,u);
+    } else if (t < 0.40) {
+      const u=(t-0.18)/0.22; A.lerpColors(P.indigo,P.violet,u); B.lerpColors(P.violet,P.orchid,u);
+    } else if (t < 0.60) {
+      const u=(t-0.40)/0.20; A.lerpColors(P.violet,P.magentaD,u); B.lerpColors(P.orchid,P.magenta,u);
+    } else if (t < 0.78) {
+      const u=(t-0.60)/0.18; A.lerpColors(P.magentaD,P.rose,u); B.lerpColors(P.magenta,P.salmon,u);
+    } else {
+      const u=(t-0.78)/0.22; A.lerpColors(P.rose,P.periwinkle,u); B.lerpColors(P.salmon,P.sky,u);
+    }
+    return [A, B];
+  }
+
+  function jitter(c, a) {
+    return new THREE.Color(
+      Math.min(1,c.r+(Math.random()-0.5)*a),
+      Math.min(1,c.g+(Math.random()-0.5)*a),
+      Math.min(1,c.b+(Math.random()-0.5)*a)
+    );
+  }
+
+  /* ── Master group — MYDNA 33° diagonal tilt ── */
+  const group = new THREE.Group();
+  group.rotation.z =  Math.PI * 0.185;
+  group.rotation.x =  Math.PI * 0.055;
+  group.position.set(0.4, -0.15, 0);
+  scene.add(group);
+
+  /* ── Helix params ── */
+  const STEPS=800, TURNS=4.2, HEIGHT=14.0, RADIUS=0.75, RUNG_EVERY=11, RUNG_SEGS=24;
+
+  function strandPos(t, phase, side) {
+    const angle = t*TURNS*Math.PI*2 + phase;
+    const y     = (t-0.5)*HEIGHT;
+    const s     = side===0 ? 0 : Math.PI;
+    return [Math.cos(angle+s)*RADIUS, y, Math.sin(angle+s)*RADIUS*0.52];
+  }
+
+  function buildGeo(pos,col) {
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    g.setAttribute('color',   new THREE.Float32BufferAttribute(col,3));
+    return g;
+  }
+  function pts(geo,tex,sz,op) {
+    return new THREE.Points(geo, new THREE.PointsMaterial({
+      size:sz, vertexColors:true, map:tex,
+      transparent:true, opacity:op, depthWrite:false,
+      blending:THREE.NormalBlending, sizeAttenuation:true
+    }));
+  }
+
+  /* Live geos for animation */
+  const _A=[], _B=[];
+
+  /* LAYER A — fine strand particles */
+  for (let s=0; s<2; s++) {
+    const pos=[],col=[];
+    for (let i=0;i<=STEPS;i++) {
+      const t=i/STEPS, [cA,cB]=chromaAt(t), c=jitter(s===0?cA:cB,0.04);
+      const [x,y,z]=strandPos(t,0,s);
+      pos.push(x,y,z); col.push(c.r,c.g,c.b);
+    }
+    const geo=buildGeo(pos,col);
+    group.add(pts(geo, s===0?T.blob0:T.blob1, 0.062, 0.90));
+    (s===0?_A:_B).push(geo);
+  }
+
+  /* LAYER B — inner glow + ultra-wide aura */
+  for (let s=0; s<2; s++) {
+    [[Math.floor(STEPS/2),0.22],[Math.floor(STEPS/4),0.10]].forEach(([len,op])=>{
+      const pos=[],col=[];
+      for (let i=0;i<=len;i++) {
+        const t=i/len,[cA,cB]=chromaAt(t),c=s===0?cA:cB;
+        const [x,y,z]=strandPos(t,0,s);
+        pos.push(x,y,z); col.push(c.r,c.g,c.b);
+      }
+      const geo=buildGeo(pos,col);
+      group.add(pts(geo,T.gauss,op<0.15?0.52:0.30,op));
+      (s===0?_A:_B).push(geo);
+    });
+  }
+
+  /* LAYER C — rungs (3 sub-layers) */
+  const _R=[];
+  function buildRungGeos() {
+    const posC=[],colC=[],posG=[],colG=[],posW=[],colW=[];
+    for (let i=0;i<=STEPS;i++) {
+      if (i%RUNG_EVERY!==0) continue;
+      const t=i/STEPS, [cA,cB]=chromaAt(t);
+      const angle=t*TURNS*Math.PI*2;
+      const y=(t-0.5)*HEIGHT;
+      const ax=Math.cos(angle)*RADIUS, az=Math.sin(angle)*RADIUS*0.52;
+      const bx=Math.cos(angle+Math.PI)*RADIUS, bz=Math.sin(angle+Math.PI)*RADIUS*0.52;
+      for (let r=0;r<=RUNG_SEGS;r++) {
+        const f=r/RUNG_SEGS;
+        const rc=jitter(new THREE.Color().lerpColors(cA,cB,f),0.03);
+        const rx=ax+(bx-ax)*f, rz=az+(bz-az)*f;
+        posC.push(rx,y,rz); colC.push(rc.r,rc.g,rc.b);
+        posG.push(rx,y,rz); colG.push(rc.r,rc.g,rc.b);
+        posW.push(rx,y,rz); colW.push(rc.r,rc.g,rc.b);
+      }
+    }
+    return [buildGeo(posC,colC),buildGeo(posG,colG),buildGeo(posW,colW)];
+  }
+  const [rC,rG,rW]=buildRungGeos();
+  group.add(pts(rC,T.blob2,0.052,0.85));
+  group.add(pts(rG,T.gauss,0.20,0.25));
+  group.add(pts(rW,T.gauss,0.45,0.10));
+  _R.push(rC,rG,rW);
+
+  /* LAYER D — watercolour splats */
+  [{count:260,tex:T.splat[0],size:0.14,opacity:0.62,spread:0.06},
+   {count:220,tex:T.splat[1],size:0.20,opacity:0.48,spread:0.09},
+   {count:180,tex:T.splat[2],size:0.30,opacity:0.35,spread:0.13},
+   {count:140,tex:T.splat[3],size:0.42,opacity:0.24,spread:0.18},
+   {count:100,tex:T.splat[4],size:0.58,opacity:0.14,spread:0.22},
+   {count: 60,tex:T.splat[5],size:0.80,opacity:0.09,spread:0.28}
+  ].forEach(({count,tex,size,opacity,spread})=>{
+    const pos=[],col=[];
+    for (let k=0;k<count;k++) {
+      const t=Math.random(),[cA,cB]=chromaAt(t);
+      const side=Math.random();
+      let x,y,z,c;
+      if (side<0.38) {
+        const [sx,sy,sz]=strandPos(t,0,0);
+        x=sx+(Math.random()-0.5)*spread; y=sy+(Math.random()-0.5)*spread*0.5; z=sz+(Math.random()-0.5)*spread*0.4;
+        c=jitter(cA,0.06);
+      } else if (side<0.76) {
+        const [sx,sy,sz]=strandPos(t,0,1);
+        x=sx+(Math.random()-0.5)*spread; y=sy+(Math.random()-0.5)*spread*0.5; z=sz+(Math.random()-0.5)*spread*0.4;
+        c=jitter(cB,0.06);
+      } else {
+        const angle=t*TURNS*Math.PI*2, f=Math.random();
+        const ax=Math.cos(angle)*RADIUS, az=Math.sin(angle)*RADIUS*0.52;
+        const bx=Math.cos(angle+Math.PI)*RADIUS, bz=Math.sin(angle+Math.PI)*RADIUS*0.52;
+        x=ax+(bx-ax)*f+(Math.random()-0.5)*spread*0.5;
+        y=(t-0.5)*HEIGHT+(Math.random()-0.5)*spread*0.3;
+        z=az+(bz-az)*f+(Math.random()-0.5)*spread*0.3;
+        c=jitter(new THREE.Color().lerpColors(cA,cB,f),0.05);
+      }
+      pos.push(x,y,z); col.push(c.r,c.g,c.b);
+    }
+    group.add(pts(buildGeo(pos,col),tex,size,opacity));
+  });
+
+  /* LAYER E — micro dust atmosphere */
+  {
+    const pos=[],col=[];
+    for (let i=0;i<4200;i++) {
+      const t=Math.random(),y=(t-0.5)*HEIGHT*1.25;
+      const r=0.08+Math.random()*2.0, ang=Math.random()*Math.PI*2;
+      pos.push(Math.cos(ang)*r,y,Math.sin(ang)*r*0.55);
+      const [cA,cB]=chromaAt(t), c=jitter(Math.random()<0.5?cA:cB,0.08);
+      col.push(c.r,c.g,c.b);
+    }
+    group.add(pts(buildGeo(pos,col),T.gauss,0.018,0.38));
+  }
+
+  /* LAYER F — medium halo blobs */
+  {
+    const pos=[],col=[];
+    for (let i=0;i<1100;i++) {
+      const t=Math.random(),y=(t-0.5)*HEIGHT*1.1;
+      const r=0.05+Math.pow(Math.random(),1.5)*1.2, ang=Math.random()*Math.PI*2;
+      pos.push(Math.cos(ang)*r,y,Math.sin(ang)*r*0.52);
+      const [cA,cB]=chromaAt(t), c=jitter(Math.random()<0.5?cA:cB,0.07);
+      col.push(c.r,c.g,c.b);
+    }
+    group.add(pts(buildGeo(pos,col),T.blob0,0.078,0.28));
+  }
+
+  /* LAYER G — specular highlights */
+  {
+    const pos=[],col=[];
+    for (let i=0;i<500;i++) {
+      const t=Math.random(), side=Math.random()<0.5?0:1;
+      const [x,y,z]=strandPos(t,0,side);
+      pos.push(x+(Math.random()-0.5)*0.02,y,z+(Math.random()-0.5)*0.02);
+      const [cA,cB]=chromaAt(t), base=side===0?cA:cB;
+      col.push(base.r*0.3+0.7, base.g*0.3+0.7, base.b*0.3+0.7);
+    }
+    group.add(pts(buildGeo(pos,col),T.gauss,0.030,0.95));
+  }
+
+  /* ── Animation ── */
+  let phi=0;
+
+  function updateStrandGeos(phase) {
+    const HALF=Math.floor(STEPS/2), Q=Math.floor(STEPS/4);
+    const configs=[
+      {geos:[_A[0],_B[0]],len:STEPS},
+      {geos:[_A[1],_B[1]],len:HALF},
+      {geos:[_A[2],_B[2]],len:Q},
+    ];
+    configs.forEach(({geos,len})=>{
+      geos.forEach((geo,si)=>{
+        const arr=geo.attributes.position.array;
+        for (let i=0;i<=len;i++) {
+          const t=i/len, [x,y,z]=strandPos(t,phase,si);
+          arr[i*3]=x; arr[i*3+1]=y; arr[i*3+2]=z;
+        }
+        geo.attributes.position.needsUpdate=true;
+      });
+    });
+  }
+
+  function updateRungs(phase) {
+    _R.forEach(geo=>{
+      const arr=geo.attributes.position.array;
+      let idx=0;
+      for (let i=0;i<=STEPS;i++) {
+        if (i%RUNG_EVERY!==0) continue;
+        const t=i/STEPS, angle=t*TURNS*Math.PI*2+phase, y=(t-0.5)*HEIGHT;
+        const ax=Math.cos(angle)*RADIUS, az=Math.sin(angle)*RADIUS*0.52;
+        const bx=Math.cos(angle+Math.PI)*RADIUS, bz=Math.sin(angle+Math.PI)*RADIUS*0.52;
+        for (let r=0;r<=RUNG_SEGS;r++) {
+          const f=r/RUNG_SEGS;
+          arr[idx*3]=ax+(bx-ax)*f; arr[idx*3+1]=y; arr[idx*3+2]=az+(bz-az)*f;
+          idx++;
+        }
+      }
+      geo.attributes.position.needsUpdate=true;
+    });
+  }
+
+  (function animate(){
+    requestAnimationFrame(animate);
+    phi += 0.0032;
+    group.rotation.y = Math.sin(phi*0.28)*0.055;
+    group.rotation.z = Math.PI*0.185 + Math.sin(phi*0.19)*0.010;
+    group.position.y = -0.15 + Math.sin(phi*0.14)*0.06;
+    updateStrandGeos(phi*0.30);
+    updateRungs(phi*0.30);
+    renderer.render(scene,camera);
+  })();
+})();
+
+/* ══════════════════════════════════════════════════════════
+   CONCENTRIC CIRCLES
+══════════════════════════════════════════════════════════ */
+const rings=[document.getElementById('cr1'),document.getElementById('cr2'),document.getElementById('cr3'),document.getElementById('cr4'),document.getElementById('cr5')];
+const labels=[document.getElementById('cl1'),document.getElementById('cl2'),document.getElementById('cl3'),document.getElementById('cl4'),document.getElementById('cl5')];
+const featureItems=document.querySelectorAll('.feature-item');
+
+function handleConcentricScroll(){
+  const section=document.getElementById('mission');
+  const rect=section.getBoundingClientRect();
+  const vh=window.innerHeight;
+  const sectionH=section.offsetHeight;
+  const rawProgress=(-rect.top)/(sectionH-vh);
+  const progress=Math.max(0,Math.min(1,rawProgress));
+  const ringsOpen=Math.floor(progress*5.5);
+  rings.forEach((ring,i)=>{
+    if(i<ringsOpen){
+      const tx=-(i+1)*12*progress,ty=(i+1)*10*progress,sc=1+i*.04*progress;
+      ring.style.transform=`translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${sc})`;
+      ring.style.opacity=String(0.9-i*.12);
+    } else {
+      ring.style.transform='translate(-50%,-50%) scale(1)';
+      ring.style.opacity=String(0.9-i*.12);
+    }
+  });
+  labels.forEach((lbl,i)=>{lbl.classList.toggle('visible',ringsOpen>i);});
+  const activeIdx=Math.min(Math.floor(progress*5),4);
+  featureItems.forEach((item,i)=>{item.classList.toggle('active-feat',i===activeIdx);});
+}
+handleConcentricScroll();
+
+/* ══════════════════════════════════════════════════════════
+   FILE HANDLING
+══════════════════════════════════════════════════════════ */
+const files={axial:null,coronal:null,sagittal:null};
+function handleFile(plane,input){
+  const file=input.files[0];if(!file)return;
+  files[plane]=file;
+  document.getElementById(`card-${plane}`).classList.add('loaded');
+  const pill=document.getElementById(`status-${plane}`);
+  const name=file.name.length>24?file.name.slice(0,22)+'…':file.name;
+  pill.innerHTML=`<span class="pill-dot"></span>${name}`;
+  pill.classList.add('loaded');checkReady();
+}
+function checkReady(){document.getElementById('btn-analyze').disabled=!(files.axial&&files.coronal&&files.sagittal);}
+
+document.querySelectorAll('.upload-card').forEach(card=>{
+  const plane=card.id.replace('card-','');
+  card.addEventListener('dragover',e=>{e.preventDefault();card.style.background='var(--off)';});
+  card.addEventListener('dragleave',()=>{card.style.background='';});
+  card.addEventListener('drop',e=>{
+    e.preventDefault();card.style.background='';
+    const file=e.dataTransfer.files[0];
+    if(file&&file.name.endsWith('.npy')){
+      files[plane]=file;
+      document.getElementById(`card-${plane}`).classList.add('loaded');
+      const pill=document.getElementById(`status-${plane}`);
+      const name=file.name.length>24?file.name.slice(0,22)+'…':file.name;
+      pill.innerHTML=`<span class="pill-dot"></span>${name}`;
+      pill.classList.add('loaded');checkReady();
+    }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════
+   LOADING
+══════════════════════════════════════════════════════════ */
+const LOAD_STEPS=['Preprocessing MRI volumes…','Applying CLAHE enhancement…','Sampling slices across planes…','Running ResNet18 encoders…','Computing attention weights…','Generating Grad-CAM++ maps…','Fusing multi-plane features…','Finalizing predictions…'];
+let stepTimer;
+function showLoading(){document.getElementById('loading').classList.add('visible');let i=0;const el=document.getElementById('loading-step');stepTimer=setInterval(()=>{if(i<LOAD_STEPS.length)el.textContent=LOAD_STEPS[i++];},700);}
+function hideLoading(){clearInterval(stepTimer);document.getElementById('loading').classList.remove('visible');}
+
+/* ══════════════════════════════════════════════════════════
+   UI HELPERS
+══════════════════════════════════════════════════════════ */
+function switchPlane(plane,btn){
+  document.querySelectorAll('.plane-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.slice-viewer').forEach(v=>v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`viewer-${plane}`).classList.add('active');
+}
+function scrollToUpload(){document.getElementById('upload-section').scrollIntoView({behavior:'smooth'});}
+
+/* ══════════════════════════════════════════════════════════
+   RESULTS RENDERING
+══════════════════════════════════════════════════════════ */
+function renderResults(data){
+  const isPred=data.prediction===1,prob=data.probability,pNorm=1-prob;
+  const cls=isPred?'tear':'normal';
+  document.getElementById('result-banner').className=`result-banner ${cls}`;
+  const badge=document.getElementById('result-badge');badge.className=`result-status-badge ${cls}`;
+  document.getElementById('badge-text').textContent=isPred?'ACL TEAR DETECTED':'NO TEAR DETECTED';
+  const lbl=document.getElementById('result-label');lbl.className=`result-label-big ${cls}`;lbl.textContent=data.label;
+  document.getElementById('result-sub').textContent=isPred?`Model confidence: ${(data.confidence*100).toFixed(1)}% — Requires radiologist confirmation`:`Model confidence: ${(data.confidence*100).toFixed(1)}% — No ACL tear pattern detected`;
+  const pn=document.getElementById('result-prob-num');pn.className=`prob-big-num ${cls}`;pn.textContent=`${(prob*100).toFixed(1)}%`;
+  document.getElementById('pct-tear').textContent=`${(prob*100).toFixed(1)}%`;
+  document.getElementById('pct-normal').textContent=`${(pNorm*100).toFixed(1)}%`;
+  setTimeout(()=>{document.getElementById('bar-tear').style.width=`${prob*100}%`;document.getElementById('bar-normal').style.width=`${pNorm*100}%`;},150);
+
+  ['axial','coronal','sagittal'].forEach(plane=>{
+    const container=document.getElementById(`viewer-${plane}`);
+    const slices=data.gradcam_images[plane];let selIdx=0;
+    function buildViewer(){
+      container.innerHTML='';
+      const strip=document.createElement('div');strip.className='slice-strip';
+      slices.forEach((s,i)=>{
+        const card=document.createElement('div');card.className=`slice-thumb${i===selIdx?' active':''}`;
+        card.innerHTML=`<span class="thumb-idx">#${s.slice_idx}</span><img src="data:image/png;base64,${s.overlay_b64}" alt="slice ${s.slice_idx}">`;
+        card.onclick=()=>{selIdx=i;buildViewer();};strip.appendChild(card);
+      });
+      container.appendChild(strip);
+      const preview=document.createElement('div');preview.className='big-preview-grid';const sel=slices[selIdx];
+      preview.innerHTML=`<div class="preview-panel"><div class="preview-panel-label">Raw MRI Slice #${sel.slice_idx}</div><img class="preview-panel-img" src="data:image/png;base64,${sel.raw_b64}" alt="raw"></div><div class="preview-panel"><div class="preview-panel-label">Grad-CAM++ Overlay</div><img class="preview-panel-img" src="data:image/png;base64,${sel.overlay_b64}" alt="overlay"></div>`;
+      container.appendChild(preview);
+    }
+    buildViewer();
+  });
+
+  const grid=document.getElementById('attn-grid');grid.innerHTML='';
+  ['axial','coronal','sagittal'].forEach(plane=>{
+    const wts=data.attention_weights[plane],maxW=Math.max(...wts);
+    const card=document.createElement('div');card.className='attn-card';
+    card.innerHTML=`<div class="attn-card-title">${plane} Plane</div><div class="attn-bars">${wts.map((w,i)=>`<div class="attn-row"><span class="attn-idx">${i}</span><div class="attn-track"><div class="attn-fill" style="width:${(w/maxW*100).toFixed(1)}%"></div></div></div>`).join('')}</div>`;
+    grid.appendChild(card);
+  });
+
+  const resultsEl=document.getElementById('results');resultsEl.classList.add('visible');
+  setTimeout(()=>resultsEl.scrollIntoView({behavior:'smooth',block:'start'}),200);
+}
+
+/* ══════════════════════════════════════════════════════════
+   INFERENCE
+══════════════════════════════════════════════════════════ */
+async function runAnalysis(){
+  showLoading();
+  const form=new FormData();
+  form.append('axial',files.axial);form.append('coronal',files.coronal);form.append('sagittal',files.sagittal);
+  try{
+    const res=await fetch(`${API_BASE}/predict`,{method:'POST',body:form});
+    if(!res.ok){const err=await res.json();throw new Error(err.error||`Server error ${res.status}`);}
+    const data=await res.json();hideLoading();renderResults(data);
+  }catch(err){hideLoading();alert(`Error: ${err.message}\n\nMake sure the Flask backend is running at ${API_BASE}`);}
+}
+
+window.runDemo=async()=>{
+  showLoading();
+  try{const res=await fetch(`${API_BASE}/demo`);const data=await res.json();hideLoading();renderResults(data);}
+  catch(e){hideLoading();alert('Demo endpoint unavailable. Start the Flask backend first.');}
+};
+
+/* ══════════════════════════════════════════════════════════
+   3D SPINE VIEWER
+══════════════════════════════════════════════════════════ */
+let spineViewer=null,spineVisible=false;
+function initSpineViewer(){
+  if(spineViewer)return;
+  const canvas=document.getElementById('spine-canvas');if(!canvas)return;
+  const w=canvas.clientWidth||520,h=canvas.clientHeight||520;
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0xffffff);
+  const camera=new THREE.PerspectiveCamera(75,w/h,.1,1000);camera.position.z=3;
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+  renderer.setSize(w,h);renderer.setPixelRatio(window.devicePixelRatio);
+  const spineGroup=new THREE.Group();
+  const vertebraCount=7,spacing=0.35;
+  const colors=[0x8b6fcb,0xa384d8,0xc4aef0,0xd4a0b0,0xcc3344];
+  for(let i=0;i<vertebraCount;i++){
+    const geo=new THREE.BoxGeometry(.6+i*0.02,.4,.5);
+    const mat=new THREE.MeshPhongMaterial({color:colors[i%colors.length],shininess:60});
+    const mesh=new THREE.Mesh(geo,mat);mesh.position.y=(vertebraCount/2-i)*spacing;spineGroup.add(mesh);
+    if(i<vertebraCount-1){
+      const connGeo=new THREE.CylinderGeometry(.08,.08,spacing*.6,8);
+      const conn=new THREE.Mesh(connGeo,new THREE.MeshPhongMaterial({color:0xd0cdc6,shininess:40}));
+      conn.position.y=(vertebraCount/2-i-0.5)*spacing;spineGroup.add(conn);
+    }
+  }
+  for(let i=0;i<vertebraCount;i++){
+    for(let side=-1;side<=1;side+=2){
+      const proc=new THREE.Mesh(new THREE.ConeGeometry(.12,.5,6),new THREE.MeshPhongMaterial({color:0xa384d8,shininess:50}));
+      proc.position.set(side*.4,(vertebraCount/2-i)*spacing,.2);proc.rotation.z=side*.4;spineGroup.add(proc);
+    }
+  }
+  scene.add(spineGroup);
+  scene.add(new THREE.AmbientLight(0xffffff,.6));
+  const pl=new THREE.PointLight(0xffffff,.8);pl.position.set(5,5,8);scene.add(pl);
+  let isDragging=false,prevX=0,prevY=0;
+  canvas.addEventListener('mousedown',e=>{isDragging=true;prevX=e.clientX;prevY=e.clientY;});
+  canvas.addEventListener('mousemove',e=>{if(!isDragging)return;const dx=(e.clientX-prevX)*.01,dy=(e.clientY-prevY)*.01;spineGroup.rotation.y+=dx;spineGroup.rotation.x+=dy;prevX=e.clientX;prevY=e.clientY;});
+  canvas.addEventListener('mouseup',()=>{isDragging=false;});
+  canvas.addEventListener('wheel',e=>{e.preventDefault();camera.position.z+=e.deltaY*.002;camera.position.z=Math.max(.8,Math.min(8,camera.position.z));},{passive:false});
+  (function animate(){requestAnimationFrame(animate);if(!isDragging)spineGroup.rotation.y+=.003;renderer.render(scene,camera);})();
+  spineViewer={canvas};
+}
+
+function toggleSpineViewer(){
+  const canvas=document.getElementById('spine-canvas');
+  const info=document.getElementById('spine-info');
+  const btn=document.querySelector('.spine-toggle');
+  const dna=document.getElementById('dna-hero-canvas');
+  spineVisible=!spineVisible;
+  if(spineVisible){
+    initSpineViewer();canvas.classList.add('active');info.classList.add('visible');
+    btn.style.background='var(--violet)';dna.style.display='none';
+  } else {
+    canvas.classList.remove('active');info.classList.remove('visible');
+    btn.style.background='';dna.style.display='block';
+  }
+}
+
+window.addEventListener('load',()=>{
+  const canvas=document.getElementById('spine-canvas');
+  if(canvas){canvas.width=Math.min(window.innerWidth*.4,520);canvas.height=Math.min(window.innerWidth*.4,520);}
+});
+</script>
+</body>
+</html>
