@@ -1,6 +1,6 @@
 # Software-deployment
 
-A small project containing a Jupyter Notebook, a Python backend script, an HTML report, and a requirements file. This repository appears to collect code and artifacts related to a software deployment / analysis workflow.
+This project mainly focuses on ACL tears where we trained the model with our own artitecture. We trained the model using Stanford University dataset all the results are there in project (1).ipynb
 
 ## Contents
 
